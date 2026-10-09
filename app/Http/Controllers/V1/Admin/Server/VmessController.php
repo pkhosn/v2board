@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ServerVmessSave;
 use App\Http\Requests\Admin\ServerVmessUpdate;
 use App\Models\ServerVmess;
+use App\Utils\Helper;
 use Illuminate\Http\Request;
 
 class VmessController extends Controller
@@ -13,6 +14,17 @@ class VmessController extends Controller
     public function save(ServerVmessSave $request)
     {
         $params = $request->validated();
+
+        if (($params['tlsSettings']['ech'] ?? '') === 'custom') {
+            if (empty($params['tlsSettings']['ech_server_name'])) {
+                abort(422, '自定义 ECH 需要填写外层 SNI');
+            }
+            if (empty($params['tlsSettings']['ech_key']) || empty($params['tlsSettings']['ech_config'])) {
+                $echPair = Helper::generateEchKeyPair($params['tlsSettings']['ech_server_name']);
+                $params['tlsSettings']['ech_key'] = $echPair['ech_key'];
+                $params['tlsSettings']['ech_config'] = $echPair['ech_config'];
+            }
+        }
 
         if ($request->input('id')) {
             $server = ServerVmess::find($request->input('id'));

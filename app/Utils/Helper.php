@@ -243,6 +243,12 @@ class Helper
             $config['allowInsecure'] = (int)($tlsSettings['allow_insecure'] ?? $tlsSettings['allowInsecure'] ?? 0);
             $config['sni'] = $tlsSettings['server_name'] ?? $tlsSettings['serverName'] ?? '';
             $config['pcs'] = $tlsSettings['pinned_peer_cert_sha256'] ?? '';
+            if (($tlsSettings['ech'] ?? '') === 'cloudflare') {
+                $config['ech'] = 'cloudflare-ech.com+https://doh.pub/dns-query';
+            } elseif (($tlsSettings['ech'] ?? '') === 'custom' && !empty($tlsSettings['ech_config'])) {
+                $echConfig = $tlsSettings['ech_config'];
+                $config['ech'] = is_array($echConfig) ? (reset($echConfig) ?: '') : $echConfig;
+            }
         }
         
         $network = (string)$server['network'];
@@ -285,6 +291,39 @@ class Helper
                 $config['mode'] = $networkSettings['mode'] ?? 'auto';
                 $config['extra'] = isset($networkSettings['extra']) ? json_encode($networkSettings['extra'], JSON_UNESCAPED_SLASHES) : null;
                 break;
+        }
+
+        // v2rayN's legacy Base64 VMess parser ignores the ECH field. Its URI parser
+        // reads ECH from the query string, so use that format only for ECH nodes.
+        if (!empty($config['ech'])) {
+            $params = [
+                'security' => 'tls',
+                'type' => $network === 'tcp' ? 'tcp' : $network,
+                'sni' => $config['sni'],
+                'fp' => $config['fp'],
+                'ech' => $config['ech'],
+                'insecure' => (string)$config['allowInsecure'],
+            ];
+            if ($network === 'tcp') {
+                $params['headerType'] = $config['type'];
+                $params['host'] = $config['host'];
+                $params['path'] = $config['path'];
+            } elseif ($network === 'grpc') {
+                $params['serviceName'] = $config['path'];
+            } elseif ($network === 'kcp') {
+                $params['seed'] = $config['path'];
+                $params['headerType'] = $config['type'];
+            } else {
+                $params['host'] = $config['host'];
+                $params['path'] = $config['path'];
+                if ($network === 'xhttp') {
+                    $params['mode'] = $config['mode'];
+                    $params['extra'] = $config['extra'];
+                }
+            }
+            return self::buildUriString('vmess', $uuid, $server, self::encodeURIComponent($server['name']), array_filter($params, function ($value) {
+                return $value !== null && $value !== '';
+            }));
         }
 
         return "vmess://" . base64_encode(json_encode($config)) . "\r\n";

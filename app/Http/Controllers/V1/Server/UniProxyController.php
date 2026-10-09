@@ -234,7 +234,8 @@ class UniProxyController extends Controller
                     'server_port' => $this->nodeInfo->server_port,
                     'network' => $this->nodeInfo->network,
                     'networkSettings' => $this->nodeInfo->networkSettings,
-                    'tls' => $this->nodeInfo->tls
+                    'tls' => $this->nodeInfo->tls,
+                    'tlsSettings' => $this->nodeInfo->tlsSettings
                 ];
                 break;
             case 'vless':

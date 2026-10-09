@@ -153,6 +153,17 @@ class SingboxOld
             $tlsSettings = $server['tls_settings'] ?? $server['tlsSettings'] ?? [];
             $tlsConfig['insecure'] = $config['allowInsecure'] = ((int)($tlsSettings['allow_insecure'] ?? $tlsSettings['allowInsecure'] ?? 0)) == 1 ? true : false;
             $tlsConfig['server_name'] = $tlsSettings['server_name'] ?? $tlsSettings['serverName'] ?? '';
+            if (($tlsSettings['ech'] ?? '') === 'cloudflare') {
+                $tlsConfig['ech'] = [
+                    'enabled' => true,
+                    'query_server_name' => 'cloudflare-ech.com'
+                ];
+            } elseif (($tlsSettings['ech'] ?? '') === 'custom' && !empty($tlsSettings['ech_config'])) {
+                $tlsConfig['ech'] = [
+                    'enabled' => true,
+                    'config' => is_array($tlsSettings['ech_config']) ? $tlsSettings['ech_config'] : [$tlsSettings['ech_config']]
+                ];
+            }
             $array['tls'] = $tlsConfig;
         }
         if ($server['network'] === 'tcp') {

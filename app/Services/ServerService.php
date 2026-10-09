@@ -73,6 +73,11 @@ class ServerService
             } else {
                 $vmess[$key]['last_check_at'] = Cache::get(CacheKey::get('SERVER_VMESS_LAST_CHECK_AT', $vmess[$key]['id']));
             }
+            if (isset($vmess[$key]['tlsSettings']['ech_key'])) {
+                $tlsSettings = $vmess[$key]['tlsSettings'];
+                unset($tlsSettings['ech_key']);
+                $vmess[$key]['tlsSettings'] = $tlsSettings;
+            }
             $servers[] = $vmess[$key]->toArray();
         }
 

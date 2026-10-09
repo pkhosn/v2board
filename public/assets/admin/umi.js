@@ -12325,7 +12325,38 @@
                 }, d.a.createElement("label", null, "Allow Insecure"), d.a.createElement("div", null, d.a.createElement(y["a"], {
                     checked: parseInt(n),
                     onChange: e=>this.change("allowInsecure", e ? "1" : "0")
-                })))))
+                }))), d.a.createElement("div", {
+                    className: "form-group"
+                }, d.a.createElement("label", null, "ECH (Encrypted Client Hello)"), d.a.createElement("select", {
+                    value: e.ech || "",
+                    style: { width: "100%", padding: "6px" },
+                    onChange: e=>this.change("ech", e.target.value)
+                }, d.a.createElement("option", { value: "" }, "关闭"),
+                   d.a.createElement("option", { value: "cloudflare" }, "Cloudflare"),
+                   d.a.createElement("option", { value: "custom" }, "自定义"))),
+                e.ech === "cloudflare" && d.a.createElement("div", null,
+                    "由 Cloudflare 提供 ECH；支持的订阅格式将下发 ECH 配置。"),
+                e.ech === "custom" && d.a.createElement("div", { className: "form-group" },
+                    d.a.createElement("label", null, "ECH Server Name (外层 SNI)"),
+                    d.a.createElement(s["a"], {
+                        value: e.ech_server_name || "",
+                        onChange: e=>this.change("ech_server_name", e.target.value),
+                        placeholder: "必填"
+                    })),
+                e.ech === "custom" && d.a.createElement("div", { className: "form-group" },
+                    d.a.createElement("label", null, "ECH Key (服务端私钥)"),
+                    d.a.createElement(s["a"], {
+                        value: e.ech_key || "",
+                        onChange: e=>this.change("ech_key", e.target.value),
+                        placeholder: "留空自动生成"
+                    })),
+                e.ech === "custom" && d.a.createElement("div", { className: "form-group" },
+                    d.a.createElement("label", null, "ECH Config (客户端配置)"),
+                    d.a.createElement(s["a"], {
+                        value: Array.isArray(e.ech_config) ? (e.ech_config[0] || "") : (e.ech_config || ""),
+                        onChange: e=>this.change("ech_config", e.target.value),
+                        placeholder: "留空自动生成"
+                    }))))
             }
         }
         var w = n("lc5D")

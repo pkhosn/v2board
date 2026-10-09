@@ -51,6 +51,12 @@ class Shadowrocket
             $tlsSettings = $server['tls_settings'] ?? ($server['tlsSettings'] ?? []);
             $config['allowInsecure'] = (int)($tlsSettings['allow_insecure'] ?? $tlsSettings['allowInsecure'] ?? 0);
             $config['peer'] = $tlsSettings['server_name'] ?? $tlsSettings['serverName'] ?? '';
+            if (($tlsSettings['ech'] ?? '') === 'cloudflare') {
+                $config['ech'] = 'cloudflare-ech.com+https://doh.pub/dns-query';
+            } elseif (($tlsSettings['ech'] ?? '') === 'custom' && !empty($tlsSettings['ech_config'])) {
+                $echConfig = $tlsSettings['ech_config'];
+                $config['ech'] = is_array($echConfig) ? (reset($echConfig) ?: '') : $echConfig;
+            }
         }
         if ($server['network'] === 'tcp') {
             $tcpSettings = $server['network_settings'] ?? ($server['networkSettings'] ?? []);
