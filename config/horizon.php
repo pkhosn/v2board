@@ -3,8 +3,19 @@
 use Illuminate\Support\Str;
 use Linfo\Linfo;
 
-$lInfo = new Linfo();
-$parser = $lInfo->getParser();
+// Restricted hosts may not permit Linfo to read Linux system information.
+$maxProcesses = 6;
+if (@is_readable('/sys') && @is_readable('/proc')) {
+    try {
+        $lInfo = new Linfo();
+        $ram = $lInfo->getParser()->getRam();
+        if (isset($ram['total']) && is_numeric($ram['total']) && $ram['total'] > 0) {
+            $maxProcesses = (int)ceil($ram['total'] / 1024 / 1024 / 1024 * 6);
+        }
+    } catch (\Throwable $exception) {
+        $maxProcesses = 6;
+    }
+}
 
 return [
 
@@ -183,7 +194,7 @@ return [
                 'balance' => 'auto',
                 'minProcesses' => 1,
                 'maxProcesses' => min(
-                    (int)ceil($parser->getRam()['total'] / 1024 / 1024 / 1024 * 6),
+                    $maxProcesses,
                     (int)env('HORIZON_MAX_PROCESSES', 128)
                 ),
                 'tries' => 1,
