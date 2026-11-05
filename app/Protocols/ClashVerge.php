@@ -188,7 +188,7 @@ class ClashVerge
                     } elseif ($tlsSettings['ech'] === 'custom' && !empty($tlsSettings['ech_config'])) {
                         $array['ech-opts'] = [
                             'enable' => true,
-                            'config' => is_array($tlsSettings['ech_config']) ? $tlsSettings['ech_config'] : [$tlsSettings['ech_config']]
+                            'config' => \App\Utils\Helper::echConfigBase64($tlsSettings['ech_config'])
                         ];
                     }
                 }
@@ -265,7 +265,7 @@ class ClashVerge
                     } elseif ($tlsSettings['ech'] === 'custom' && !empty($tlsSettings['ech_config'])) {
                         $array['ech-opts'] = [
                             'enable' => true,
-                            'config' => is_array($tlsSettings['ech_config']) ? $tlsSettings['ech_config'] : [$tlsSettings['ech_config']]
+                            'config' => \App\Utils\Helper::echConfigBase64($tlsSettings['ech_config'])
                         ];
                     }
                 }
@@ -369,7 +369,7 @@ class ClashVerge
             } elseif ($tlsSettings['ech'] === 'custom' && !empty($tlsSettings['ech_config'])) {
                 $array['ech-opts'] = [
                     'enable' => true,
-                    'config' => is_array($tlsSettings['ech_config']) ? $tlsSettings['ech_config'] : [$tlsSettings['ech_config']]
+                    'config' => \App\Utils\Helper::echConfigBase64($tlsSettings['ech_config'])
                 ];
             }
         }

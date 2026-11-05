@@ -170,7 +170,7 @@ class Singbox
                 } elseif ($tlsSettings['ech'] === 'custom' && !empty($tlsSettings['ech_config'])) {
                     $tlsConfig['ech'] = [
                         'enabled' => true,
-                        'config' => is_array($tlsSettings['ech_config']) ? $tlsSettings['ech_config'] : [$tlsSettings['ech_config']]
+                        'config' => \App\Utils\Helper::echConfigPem($tlsSettings['ech_config'])
                     ];
                 }
             }
@@ -242,7 +242,7 @@ class Singbox
                     } elseif ($tlsSettings['ech'] === 'custom' && !empty($tlsSettings['ech_config'])) {
                         $tlsConfig['ech'] = [
                             'enabled' => true,
-                            'config' => is_array($tlsSettings['ech_config']) ? $tlsSettings['ech_config'] : [$tlsSettings['ech_config']]
+                            'config' => \App\Utils\Helper::echConfigPem($tlsSettings['ech_config'])
                         ];
                     }
                 }
@@ -302,7 +302,7 @@ class Singbox
             } elseif ($tlsSettings['ech'] === 'custom' && !empty($tlsSettings['ech_config'])) {
                 $tlsConfig['ech'] = [
                     'enabled' => true,
-                    'config' => is_array($tlsSettings['ech_config']) ? $tlsSettings['ech_config'] : [$tlsSettings['ech_config']]
+                    'config' => \App\Utils\Helper::echConfigPem($tlsSettings['ech_config'])
                 ];
             }
         }

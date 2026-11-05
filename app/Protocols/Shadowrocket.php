@@ -55,7 +55,7 @@ class Shadowrocket
                 $config['ech'] = 'cloudflare-ech.com+https://doh.pub/dns-query';
             } elseif (($tlsSettings['ech'] ?? '') === 'custom' && !empty($tlsSettings['ech_config'])) {
                 $echConfig = $tlsSettings['ech_config'];
-                $config['ech'] = is_array($echConfig) ? (reset($echConfig) ?: '') : $echConfig;
+                $config['ech'] = \App\Utils\Helper::echConfigBase64($echConfig);
             }
         }
         if ($server['network'] === 'tcp') {

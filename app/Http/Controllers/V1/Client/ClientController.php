@@ -25,6 +25,12 @@ class ClientController extends Controller
         if ($userService->isAvailable($user)) {
             $serverService = new ServerService();
             $servers = $serverService->getAvailableServers($user);
+            $skipped = [];
+            $servers = Helper::filterInvalidEchServers($servers, $skipped);
+            if ($skipped) {
+                // The middleware attaches this diagnostic to any subscription format.
+                $request->attributes->set('ech_skipped_nodes', implode(',', $skipped));
+            }
             if($flag) {
                 if (!strpos($flag, 'sing')) {
                     $this->setSubscribeInfoToServers($servers, $user);

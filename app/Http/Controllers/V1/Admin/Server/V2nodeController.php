@@ -67,21 +67,10 @@ class V2nodeController extends Controller
                 $params['tls_settings']['server_port'] = "443";
             }
         }
-        if (isset($params['tls_settings']) && !empty($params['tls_settings']['ech']) && $params['tls_settings']['ech'] === 'custom') {
-            if (empty($params['tls_settings']['ech_server_name'])) {
-                $params['tls_settings']['ech'] = '';
-            } else {
-                $outerSni = $params['tls_settings']['ech_server_name'];
-                if (empty($params['tls_settings']['ech_key']) || empty($params['tls_settings']['ech_config'])) {
-                    $echPair = Helper::generateEchKeyPair($outerSni);
-                    if (empty($params['tls_settings']['ech_key'])) {
-                        $params['tls_settings']['ech_key'] = $echPair['ech_key'];
-                    }
-                    if (empty($params['tls_settings']['ech_config'])) {
-                        $params['tls_settings']['ech_config'] = $echPair['ech_config'];
-                    }
-                }
-            }
+        try {
+            $params['tls_settings'] = Helper::prepareEchSettings($params['tls_settings'] ?? []);
+        } catch (\InvalidArgumentException $exception) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['tls_settings.ech_config' => $exception->getMessage()]);
         }
         if (isset($params['tls']) && !empty($params['tls_settings']['cert_mode']) && $params['tls_settings']['cert_mode'] === 'remote') {
             if (!isset($params['tls_settings']['pinned_peer_cert_sha256'])) {

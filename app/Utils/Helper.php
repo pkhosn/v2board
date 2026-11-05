@@ -247,7 +247,7 @@ class Helper
                 $config['ech'] = 'cloudflare-ech.com+https://doh.pub/dns-query';
             } elseif (($tlsSettings['ech'] ?? '') === 'custom' && !empty($tlsSettings['ech_config'])) {
                 $echConfig = $tlsSettings['ech_config'];
-                $config['ech'] = is_array($echConfig) ? (reset($echConfig) ?: '') : $echConfig;
+                $config['ech'] = self::echConfigBase64($echConfig);
             }
         }
         
@@ -361,7 +361,7 @@ class Helper
             if ($tlsSettings['ech'] === 'cloudflare') {
                 $config['ech'] = 'cloudflare-ech.com+https://doh.pub/dns-query';
             } elseif ($tlsSettings['ech'] === 'custom' && !empty($tlsSettings['ech_config'])) {
-                $config['ech'] = is_array($tlsSettings['ech_config']) ? $tlsSettings['ech_config'][0] : $tlsSettings['ech_config'];
+                $config['ech'] = self::echConfigBase64($tlsSettings['ech_config']);
             }
         }
         if (isset($server['encryption']) && $server['encryption'] == 'mlkem768x25519plus') {
@@ -407,7 +407,7 @@ class Helper
             if ($tlsSettings['ech'] === 'cloudflare') {
                 $config['ech'] = 'cloudflare-ech.com+https://doh.pub/dns-query';
             } elseif ($tlsSettings['ech'] === 'custom' && !empty($tlsSettings['ech_config'])) {
-                $config['ech'] = is_array($tlsSettings['ech_config']) ? $tlsSettings['ech_config'][0] : $tlsSettings['ech_config'];
+                $config['ech'] = self::echConfigBase64($tlsSettings['ech_config']);
             }
         }
         $query = http_build_query($config);
@@ -520,6 +520,11 @@ class Helper
      */
     public static function generateEchKeyPair($outerSni)
     {
+        if (!is_string($outerSni) || strlen($outerSni) > 253
+            || !filter_var($outerSni, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)
+            || strpos($outerSni, '.') === false || filter_var($outerSni, FILTER_VALIDATE_IP)) {
+            throw new \InvalidArgumentException('ECH 外层 SNI 必须是有效域名');
+        }
         $privateKey = random_bytes(32);
         $publicKey = sodium_crypto_scalarmult_base($privateKey);
 
@@ -539,19 +544,98 @@ class Helper
         // ECHConfig = version(0xfe0d) + length + data
         $echConfig = pack('n', 0xfe0d) . pack('n', strlen($configData)) . $configData;
 
-        // ECHConfigList for client (no outer length prefix, per Go crypto/tls)
-        $echConfigList = $echConfig;
+        // TLS ECHConfigList includes its uint16 total-length prefix.
+        $echConfigList = pack('n', strlen($echConfig)) . $echConfig;
 
-        // MarshalECHKeys for server: length-prefixed configs + key entries
-        $echKeys = pack('n', strlen($echConfig)) . $echConfig;
-        $echKeys .= pack('n', 1);                        // num_keys = 1
-        $echKeys .= pack('C', $configId);                // config_id
-        $echKeys .= pack('n', 32) . $privateKey;         // private key with length prefix
+        // sing-box/Xray server keys: private-key vector followed by ECHConfig vector.
+        $echKeys = pack('n', strlen($privateKey)) . $privateKey;
+        $echKeys .= pack('n', strlen($echConfig)) . $echConfig;
 
         return [
             'ech_key' => base64_encode($echKeys),
             'ech_config' => base64_encode($echConfigList),
         ];
+    }
+
+    /** Canonical ECHConfigList, including compatibility with early bare configs. */
+    public static function echConfigBase64($value)
+    {
+        if (is_array($value)) {
+            if (!$value) throw new \InvalidArgumentException('无效的 ECH 配置');
+            $configs = '';
+            foreach ($value as $config) {
+                $configs .= substr(base64_decode(self::echConfigBase64($config), true), 2);
+            }
+            if (strlen($configs) > 65535) throw new \InvalidArgumentException('ECH 配置过长');
+            return base64_encode(pack('n', strlen($configs)) . $configs);
+        }
+        if (!is_string($value)) throw new \InvalidArgumentException('无效的 ECH 配置');
+        if (strpos($value, '-----BEGIN ECH CONFIGS-----') !== false) {
+            if (!preg_match('/\A\s*-----BEGIN ECH CONFIGS-----\s+([A-Za-z0-9+\/=\s]+)-----END ECH CONFIGS-----\s*\z/', $value, $matches)) {
+                throw new \InvalidArgumentException('无效的 ECH CONFIGS PEM');
+            }
+            $value = preg_replace('/\s+/', '', $matches[1]);
+        }
+        $raw = base64_decode($value, true);
+        if ($raw === false || strlen($raw) < 6) throw new \InvalidArgumentException('无效的 ECH 配置');
+        $length = unpack('n', substr($raw, 0, 2))[1];
+        if ($length !== strlen($raw) - 2 && substr($raw, 0, 2) === "\xfe\x0d") {
+            // Old panels omitted the list length; preserve the issued key.
+            if (strlen($raw) > 65535) throw new \InvalidArgumentException('ECH 配置过长');
+            $raw = pack('n', strlen($raw)) . $raw;
+        }
+        $length = unpack('n', substr($raw, 0, 2))[1];
+        if ($length !== strlen($raw) - 2) throw new \InvalidArgumentException('无效的 ECH 配置长度');
+        for ($offset = 2; $offset < strlen($raw); $offset += 4 + $configLength) {
+            if (strlen($raw) - $offset < 4) throw new \InvalidArgumentException('无效的 ECH 配置长度');
+            $configLength = unpack('n', substr($raw, $offset + 2, 2))[1];
+            if (!$configLength || $configLength > strlen($raw) - $offset - 4) {
+                throw new \InvalidArgumentException('无效的 ECH 配置长度');
+            }
+        }
+        return base64_encode($raw);
+    }
+
+    public static function echConfigPem($value)
+    {
+        return ["-----BEGIN ECH CONFIGS-----\n"
+            . chunk_split(self::echConfigBase64($value), 64, "\n")
+            . "-----END ECH CONFIGS-----"];
+    }
+
+    public static function prepareEchSettings(array $settings)
+    {
+        if (($settings['ech'] ?? '') !== 'custom') return $settings;
+        if (empty($settings['ech_server_name'])) {
+            throw new \InvalidArgumentException('自定义 ECH 需要填写外层 SNI');
+        }
+        $hasKey = !empty($settings['ech_key']);
+        $hasConfig = !empty($settings['ech_config']);
+        if ($hasKey !== $hasConfig) {
+            throw new \InvalidArgumentException('ECH 私钥和公开配置必须同时提供，或同时留空生成');
+        }
+        if (!$hasKey) {
+            $settings = array_merge($settings, self::generateEchKeyPair($settings['ech_server_name']));
+        } else {
+            $settings['ech_config'] = self::echConfigBase64($settings['ech_config']);
+        }
+        return $settings;
+    }
+
+    public static function filterInvalidEchServers(array $servers, array &$skipped)
+    {
+        $skipped = [];
+        return array_values(array_filter($servers, function ($server) use (&$skipped) {
+            $settings = $server['tls_settings'] ?? $server['tlsSettings'] ?? [];
+            if (($settings['ech'] ?? '') !== 'custom') return true;
+            try {
+                self::echConfigBase64($settings['ech_config'] ?? null);
+                return true;
+            } catch (\InvalidArgumentException $exception) {
+                $skipped[] = ($server['type'] ?? 'unknown') . ':' . (int)($server['id'] ?? 0);
+                return false;
+            }
+        }));
     }
 
     public static function configureNetworkSettings($server, &$config)

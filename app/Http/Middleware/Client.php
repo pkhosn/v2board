@@ -75,6 +75,10 @@ class Client
         $request->merge([
             'user' => $user
         ]);
-        return $next($request);
+        $response = $next($request);
+        if ($skipped = $request->attributes->get('ech_skipped_nodes')) {
+            $response->headers->set('X-ECH-Skipped-Nodes', $skipped);
+        }
+        return $response;
     }
 }

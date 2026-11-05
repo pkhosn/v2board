@@ -15,15 +15,10 @@ class VmessController extends Controller
     {
         $params = $request->validated();
 
-        if (($params['tlsSettings']['ech'] ?? '') === 'custom') {
-            if (empty($params['tlsSettings']['ech_server_name'])) {
-                abort(422, '自定义 ECH 需要填写外层 SNI');
-            }
-            if (empty($params['tlsSettings']['ech_key']) || empty($params['tlsSettings']['ech_config'])) {
-                $echPair = Helper::generateEchKeyPair($params['tlsSettings']['ech_server_name']);
-                $params['tlsSettings']['ech_key'] = $echPair['ech_key'];
-                $params['tlsSettings']['ech_config'] = $echPair['ech_config'];
-            }
+        try {
+            $params['tlsSettings'] = Helper::prepareEchSettings($params['tlsSettings'] ?? []);
+        } catch (\InvalidArgumentException $exception) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['tlsSettings.ech_config' => $exception->getMessage()]);
         }
 
         if ($request->input('id')) {
