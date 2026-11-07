@@ -351,6 +351,7 @@ class Helper
 
         if ($server['tls']) {
             $tlsSettings = $server['tls_settings'] ?? [];
+            if (!empty($tlsSettings['alpn'])) $config['alpn'] = implode(',', $tlsSettings['alpn']);
             $config['sni'] = $tlsSettings['server_name'] ?? '';
             if ($server['tls'] == 2) {
                 $config['pbk'] = $tlsSettings['public_key'] ?? '';

@@ -247,6 +247,13 @@ class QuantumultX
         $isTls = !empty($server['tls']);
 
         if ($isTls) {
+            if (!empty($tlsSettings['alpn'])) {
+                $alpn = '';
+                foreach ($tlsSettings['alpn'] as $protocol) {
+                    $alpn .= chr(strlen($protocol)) . $protocol;
+                }
+                $config[] = 'tls-alpn=' . bin2hex($alpn);
+            }
             $config[] = 'tls13=true';
             if (isset($tlsSettings['allow_insecure']) && $tlsSettings['allow_insecure']) {
                 $config[] = 'tls-verification=false';

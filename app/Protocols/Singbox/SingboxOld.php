@@ -205,6 +205,7 @@ class SingboxOld
         if ($server['tls']) {
             $tlsConfig = [];
             $tlsConfig['enabled'] = true;
+            if (!empty($tlsSettings['alpn'])) $tlsConfig['alpn'] = $tlsSettings['alpn'];
             $array['flow'] = !empty($server['flow']) ? $server['flow'] : "";
             $tlsSettings = $server['tls_settings'] ?? [];
             if ($server['tls_settings']) {

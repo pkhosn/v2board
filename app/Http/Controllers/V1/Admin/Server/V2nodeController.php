@@ -24,6 +24,8 @@ class V2nodeController extends Controller
             'protocol' => 'required|in:shadowsocks,vmess,vless,trojan,tuic,hysteria2,anytls',
             'tls' => 'required|in:0,1,2',
             'tls_settings' => 'nullable|array',
+            'tls_settings.alpn' => 'sometimes|array',
+            'tls_settings.alpn.*' => 'required|string|min:1|max:255|regex:/\A[\x21-\x7E]+\z/',
             'flow' => 'nullable|in:xtls-rprx-vision',
             'network' => 'required|in:tcp,ws,grpc,http,httpupgrade,xhttp',
             'network_settings' => 'nullable|array',
@@ -45,6 +47,9 @@ class V2nodeController extends Controller
             'show' => 'nullable|in:0,1',
             'sort' => 'nullable'
         ]);
+        if (isset($params['tls_settings']['alpn'])) {
+            $params['tls_settings']['alpn'] = array_values($params['tls_settings']['alpn']);
+        }
         if ($params['protocol'] == 'anytls' && $params['tls'] === 0) {
             $params['tls'] = 1;
         }

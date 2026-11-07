@@ -211,6 +211,7 @@ class Stash
 
         if ($server['tls']) {
             $array['tls'] = true;
+            if (!empty($server['tls_settings']['alpn'])) $array['alpn'] = $server['tls_settings']['alpn'];
             if ($server['tls_settings']) {
                 $tlsSettings = $server['tls_settings'];
                 if (isset($tlsSettings['server_name']) && !empty($tlsSettings['server_name']))

@@ -22,6 +22,8 @@ class VlessController extends Controller
             'server_port' => 'required',
             'tls' => 'required|in:0,1,2',
             'tls_settings' => 'nullable|array',
+            'tls_settings.alpn' => 'sometimes|array',
+            'tls_settings.alpn.*' => 'required|string|min:1|max:255|regex:/\A[\x21-\x7E]+\z/',
             'flow' => 'nullable|in:xtls-rprx-vision',
             'network' => 'required',
             'network_settings' => 'nullable|array',
@@ -32,6 +34,9 @@ class VlessController extends Controller
             'show' => 'nullable|in:0,1',
             'sort' => 'nullable'
         ]);
+        if (isset($params['tls_settings']['alpn'])) {
+            $params['tls_settings']['alpn'] = array_values($params['tls_settings']['alpn']);
+        }
 
         if (isset($params['tls']) && (int)$params['tls'] === 2) {
             $keyPair = SodiumCompat::crypto_box_keypair();

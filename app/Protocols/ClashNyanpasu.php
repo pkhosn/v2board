@@ -251,6 +251,7 @@ class ClashNyanpasu
 
         if ($server['tls']) {
             $array['tls'] = true;
+            if (!empty($server['tls_settings']['alpn'])) $array['alpn'] = $server['tls_settings']['alpn'];
             $tlsSettings = $server['tls_settings'] ?? [];
             $array['skip-cert-verify'] = ($tlsSettings['allow_insecure'] ?? 0) == 1 ? true : false;
             $array['flow'] = !empty($server['flow']) ? $server['flow']: "";

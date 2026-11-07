@@ -104727,6 +104727,15 @@
                     value: t,
                     onChange: e=>this.change("server_name", e.target.value),
                     placeholder: tls == 2 ? "REALITY\u5fc5\u586b\uff0c\u4e0e\u540e\u7aef\u4fdd\u6301\u4e00\u81f4" : ""
+                })), this.props.alpn_enabled && tls != 0 && y.a.createElement("div", {
+                    className: "form-group"
+                }, y.a.createElement("label", null, "ALPN"), y.a.createElement(N["a"], {
+                    mode: "tags",
+                    value: Array.isArray(e.alpn) ? e.alpn : [],
+                    tokenSeparators: [","],
+                    style: { width: "100%" },
+                    placeholder: "可选：输入 h3 后回车；留空保持默认",
+                    onChange: values=>this.change("alpn", values.map(value=>value.trim()).filter(Boolean))
                 })), tls == 1 && cert_apply && y.a.createElement("div", {
                     className: "form-group"
                 }, y.a.createElement("label", null, "\u8bc1\u4e66\u6a21\u5f0fCert Mode"), y.a.createElement(N["a"], {
@@ -105146,6 +105155,7 @@
                 case "tls_settings":
                     return y.a.createElement(U, {
                         settings: n,
+                        alpn_enabled: true,
                         tls: e.tls,
                         onChange: e=>this.changeServer("tls_settings", e)
                     })
@@ -106165,6 +106175,7 @@
                 case "tls_settings":
                     return y.a.createElement(U, {
                         settings: ts,
+                        alpn_enabled: e.protocol === "vless",
                         tls: e.tls,
                         cert_apply: true,
                         onChange: e=>this.changeServer("tls_settings", e)
